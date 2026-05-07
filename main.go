@@ -1,33 +1,31 @@
 package main
 
-import (
-	"fmt"
-	"time"
-)
+import "fmt"
 
-func worker(id int, jobs <-chan int, results chan<- int) {
-	for j := range jobs {
-		fmt.Println("Worker", id, "processing job", j)
-		time.Sleep(time.Second)
-		results <- j * 2
+func worker(logs <-chan string) {
+	// consumer
+	for log := range logs {
+		fmt.Println(log)
 	}
 }
 
 func main() {
-	const numJobs = 5
-	jobs := make(chan int, numJobs)
-	results := make(chan int, numJobs)
-
-	for w := 1; w <= 3; w++ {
-		go worker(w, jobs, results)
+	logs := []string{
+		"ERROR: DB failed",
+		"INFO: user login",
 	}
 
-	for j := 1; j <= numJobs; j++ {
-		jobs <- j
-	}
-	close(jobs)
+	logChan := make(chan string)
 
-	for a := 1; a <= numJobs; a++ {
-		fmt.Println("Result:", <-results)
-	}
+	go worker(logChan)
+
+	// producer
+	go func() {
+		for _, log := range logs {
+			logChan <- log
+		}
+
+		close(logChan)
+	}()
+
 }
